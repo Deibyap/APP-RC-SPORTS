@@ -68,7 +68,7 @@ const EventsPage = ({ onSelectEvent }) => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64 text-white text-xl">
-        Cargando eventos... ¡Paciencia, campeón!
+        Cargando eventos... Por favor, espera.
       </div>
     );
   }

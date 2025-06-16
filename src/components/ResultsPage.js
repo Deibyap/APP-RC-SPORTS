@@ -85,7 +85,6 @@ const ResultsPage = ({ selectedEvent, setPage }) => {
     setExpandedAthleteId(athleteId === expandedAthleteId ? null : athleteId);
   };
 
-  // MODIFICACIÓN CLAVE AQUÍ: Función getGoogleDriveViewLink más robusta
   const getGoogleDriveViewLink = (url) => {
     // Si la URL es nula, vacía o solo espacios en blanco, devuelve null.
     if (!url || String(url).trim() === '') {
