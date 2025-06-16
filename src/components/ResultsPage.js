@@ -38,7 +38,7 @@ const ResultsPage = ({ selectedEvent, setPage }) => {
         setSearchTerm('');
         setExpandedAthleteId(null); // Resetear expansión
       } catch (e) {
-        setError("No pudimos cargar los resultados de este evento. ¡Chécate la conexión o la URL de tu hoja de Google!");
+        setError("No pudimos cargar los resultados de este evento. Revisa la conexión o la URL de tu hoja de Google.");
         console.error("Error fetching results:", e);
       } finally {
         setLoading(false);
@@ -85,14 +85,30 @@ const ResultsPage = ({ selectedEvent, setPage }) => {
     setExpandedAthleteId(athleteId === expandedAthleteId ? null : athleteId);
   };
 
+  // MODIFICACIÓN CLAVE AQUÍ: Función getGoogleDriveViewLink más robusta
   const getGoogleDriveViewLink = (url) => {
-    if (url && url.includes('drive.google.com/file/d/')) {
-      const match = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-      if (match && match[1]) {
-        return `https://drive.google.com/file/d/${match[1]}/view?usp=sharing`;
-      }
+    // Si la URL es nula, vacía o solo espacios en blanco, devuelve null.
+    if (!url || String(url).trim() === '') {
+        return null;
     }
-    return url;
+
+    const cleanUrl = String(url).trim();
+
+    if (cleanUrl.includes('drive.google.com/file/d/')) {
+        const match = cleanUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+            return `https://drive.google.com/file/d/${match[1]}/view?usp=sharing`;
+        }
+    }
+    
+    // Si no es una URL de Google Drive esperada, intenta validarla como una URL genérica.
+    // Si no es una URL válida, devuelve null para evitar errores ERR_NAME_NOT_RESOLVED.
+    try {
+        new URL(cleanUrl); // Esto lanzará un error si cleanUrl no es un formato de URL válido.
+        return cleanUrl; // Es una URL válida, la devolvemos tal cual.
+    } catch (e) {
+        return null; // No es una URL válida, devuelve null.
+    }
   };
 
   // Función para calcular el ritmo (min/km) para running en las tarjetas
@@ -317,8 +333,21 @@ const ResultsPage = ({ selectedEvent, setPage }) => {
         // Función para ajustar texto al ancho y alinearlo a la izquierda
         const adjustTextToFit = (text, maxWidth) => {
           let currentText = text;
-          while (ctx.measureText(currentText).width > maxWidth && currentText.length > 0) {
-            currentText = currentText.substring(0, currentText.length - 1);
+          // Si el nombre es muy largo, tomar solo el primer nombre y el primer apellido
+          const words = text.split(' ');
+          if (words.length > 2 && ctx.measureText(text).width > maxWidth) {
+            currentText = `${words[0]} ${words[1]}`;
+            if (ctx.measureText(currentText).width > maxWidth) { // Si aún es muy largo
+              currentText = words[0]; // Solo el primer nombre
+            }
+          } else {
+             // Si el texto es largo pero no tiene más de 2 palabras, truncar con elipsis
+            while (ctx.measureText(currentText + '...').width > maxWidth && currentText.length > 0) {
+              currentText = currentText.substring(0, currentText.length - 1);
+            }
+            if (currentText !== text) { // Solo añadir elipsis si se truncó
+              currentText += '...';
+            }
           }
           return currentText;
         };
@@ -390,7 +419,7 @@ const ResultsPage = ({ selectedEvent, setPage }) => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64 text-white text-xl">
-        Cargando resultados para {selectedEvent['Nombre evento']}... ¡Aguanta tantito!
+        Cargando resultados para {selectedEvent['Nombre evento']}... Por favor, espera.
       </div>
     );
   }
@@ -398,7 +427,7 @@ const ResultsPage = ({ selectedEvent, setPage }) => {
   if (error) {
     return (
       <div className="flex flex-col justify-center items-center h-64 text-red-500 text-xl">
-        <p className="mb-4">¡Ups! {error}</p>
+        <p className="mb-4">Error: {error}</p>
         <button
           onClick={() => setPage('home')}
           className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors"
@@ -412,7 +441,7 @@ const ResultsPage = ({ selectedEvent, setPage }) => {
   if (allResults.length === 0) {
     return (
       <div className="flex flex-col justify-center items-center h-64 text-white text-xl">
-        <p className="mb-4">¡Aún no hay resultados para {selectedEvent['Nombre evento']}! Vuelve pronto.</p>
+        <p className="mb-4">Aún no hay resultados para {selectedEvent['Nombre evento']}! Vuelve pronto.</p>
         <button
           onClick={() => setPage('home')}
           className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors"
@@ -500,7 +529,10 @@ const ResultsPage = ({ selectedEvent, setPage }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAndSearchedResults.length > 0 ? (
             filteredAndSearchedResults.map((athlete, index) => (
-              <div key={index} className="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 flex flex-col items-center text-center">
+              <div 
+                key={athlete['dorsal'] || `${athlete['nombre']}-${athlete['tiempo']}-${index}`} // Clave estable
+                className="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 flex flex-col items-center text-center"
+              >
                 {athlete['foto_url'] && (
                   <img
                     src={getGoogleDriveViewLink(athlete['foto_url'])}
@@ -510,7 +542,7 @@ const ResultsPage = ({ selectedEvent, setPage }) => {
                   />
                 )}
                 <h3 className="text-xl font-semibold text-white mb-2">{athlete['nombre']}</h3>
-                {athlete['dorsal'] && <p className="text-gray-300 text-sm">Dorsal: {athlete['dorsal']}</p>}
+                {athlete['dorsal'] && <p className="text-gray-300 text-sm font-bold text-lg">Dorsal: {athlete['dorsal']}</p>} {/* Dorsal destacado */}
                 {athlete['posición categoria'] && (
                   <div className="bg-orange-600 text-white text-lg font-bold px-3 py-1 rounded-md mb-2">
                     Posición: {athlete['posición categoria']}
@@ -580,7 +612,7 @@ const ResultsPage = ({ selectedEvent, setPage }) => {
             ))
           ) : (
             <p className="text-white text-center col-span-full">
-              ¡No encontramos participantes con esos criterios en esta categoría!
+              No encontramos participantes con esos criterios en esta categoría.
             </p>
           )}
         </div>
