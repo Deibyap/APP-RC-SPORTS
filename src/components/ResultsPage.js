@@ -529,7 +529,7 @@ const ResultsPage = ({ selectedEvent, setPage }) => {
           {filteredAndSearchedResults.length > 0 ? (
             filteredAndSearchedResults.map((athlete, index) => (
               <div 
-                key={athlete['dorsal'] || `${athlete['nombre']}-${athlete['tiempo']}-${index}`} // Clave estable
+                key={athlete['id'] || `${athlete['id evento']}-${athlete['dorsal']}` || `${athlete['nombre']}-${athlete['tiempo']}-${index}`} // Clave estable
                 className="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 flex flex-col items-center text-center"
               >
                 {athlete['foto_url'] && (
